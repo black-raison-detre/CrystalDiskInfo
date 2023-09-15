@@ -5801,6 +5801,12 @@ BOOL CAtaSmart::IsSsdSeagate(ATA_SMART_INFO& asi)
 		asi.HostReadsWritesUnit = HOST_READS_WRITES_GB;
 		asi.DiskVendorId = SSD_VENDOR_SEAGATE;
 	}
+	else if (asi.Model.Find(_T("XF1230"))) {
+		asi.SmartKeyName = _T("SmartSeagateNytro");
+		asi.FlagLifeRawValue = TRUE;
+		asi.DiskVendorId = SSD_VENDOR_SEAGATE_NYTRO;
+		asi.HostReadsWritesUnit = HOST_READS_WRITES_GB;
+	}
 
 	return flagSmartType;
 }
@@ -10672,7 +10678,10 @@ BOOL CAtaSmart::FillSmartData(ATA_SMART_INFO* asi)
 				asi->PowerOnCount = rawValue;
 				break;
 			case 0xBE:
-				if(asi->Attribute[j].RawValue[0] > 0 && asi->Attribute[j].RawValue[0] < 100)
+				if (asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO) {
+					// SATA Error Counter
+				}
+				else if(asi->Attribute[j].RawValue[0] > 0 && asi->Attribute[j].RawValue[0] < 100)
 				{
 					asi->Temperature = asi->Attribute[j].RawValue[0];
 				}
@@ -10739,6 +10748,9 @@ BOOL CAtaSmart::FillSmartData(ATA_SMART_INFO* asi)
 					asi->Life = asi->Attribute[j].CurrentValue;
 					if (asi->Life < 0 || asi->Life > 100) { asi->Life = -1; }
 				}
+				else if (asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO) {
+					//  Reported Uncorrectable Errors
+				}
 				break;
 			case 0xCA:
 				if (asi->DiskVendorId == SSD_VENDOR_MICRON || asi->DiskVendorId == SSD_VENDOR_MICRON_MU03 || asi->DiskVendorId == SSD_VENDOR_INTEL_DC)
@@ -10761,6 +10773,9 @@ BOOL CAtaSmart::FillSmartData(ATA_SMART_INFO* asi)
 					if (life < 0 || life > 100) { life = -1; }
 					life = asi->Attribute[j].CurrentValue;
 					asi->Life = life;
+				}
+				else if (asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO) {
+					//  Read Error Rate
 				}
 				break;
 			case 0xE6:
@@ -10875,7 +10890,7 @@ BOOL CAtaSmart::FillSmartData(ATA_SMART_INFO* asi)
 				}
 				break;
 			case 0xEA:
-				if (asi->DiskVendorId == SSD_VENDOR_KINGSTON || asi->DiskVendorId == SSD_VENDOR_SEAGATE
+				if (asi->DiskVendorId == SSD_VENDOR_KINGSTON || asi->DiskVendorId == SSD_VENDOR_SEAGATE || asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO
 					||  (asi->DiskVendorId == SSD_VENDOR_SKHYNIX && asi->HostReadsWritesUnit == HOST_READS_WRITES_GB)
 					)
 				{
@@ -11007,7 +11022,8 @@ BOOL CAtaSmart::FillSmartData(ATA_SMART_INFO* asi)
 						 / 32);
 				}
 				else if((asi->DiskVendorId == SSD_VENDOR_SANDISK ||
-						asi->DiskVendorId == SSD_VENDOR_SANDISK_CLOUD)
+						asi->DiskVendorId == SSD_VENDOR_SANDISK_CLOUD ||
+						asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO)
 					&& asi->HostReadsWritesUnit == HOST_READS_WRITES_GB)
 				{
 					asi->HostWrites = *(INT*)&asi->Attribute[j].RawValue[0];//(INT)B8toB32(asi->Attribute[j].RawValue[0], asi->Attribute[j].RawValue[1], asi->Attribute[j].RawValue[2], asi->Attribute[j].RawValue[3]);
@@ -11114,7 +11130,8 @@ BOOL CAtaSmart::FillSmartData(ATA_SMART_INFO* asi)
 						/ 32);
 				}
 				else if ((asi->DiskVendorId == SSD_VENDOR_SANDISK ||
-					asi->DiskVendorId == SSD_VENDOR_SANDISK_CLOUD)
+					asi->DiskVendorId == SSD_VENDOR_SANDISK_CLOUD ||
+					asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO)
 					&& asi->HostReadsWritesUnit == HOST_READS_WRITES_GB)
 				{
 					asi->HostReads = *(INT*)&asi->Attribute[j].RawValue[0];//(INT)B8toB32(asi->Attribute[j].RawValue[0], asi->Attribute[j].RawValue[1], asi->Attribute[j].RawValue[2], asi->Attribute[j].RawValue[3]);
@@ -11146,6 +11163,9 @@ BOOL CAtaSmart::FillSmartData(ATA_SMART_INFO* asi)
 				{
 					asi->NandWrites = *(INT*)&asi->Attribute[j].RawValue[0];//(INT)B8toB32(asi->Attribute[j].RawValue[0], asi->Attribute[j].RawValue[1], asi->Attribute[j].RawValue[2], asi->Attribute[j].RawValue[3]);
 				}
+				else if (asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO) {
+					// Total Number of NAND Read Retries
+				}
 				break;
 			case 0x64:
 				if(asi->DiskVendorId == SSD_VENDOR_SANDFORCE)
@@ -11171,11 +11191,14 @@ BOOL CAtaSmart::FillSmartData(ATA_SMART_INFO* asi)
 					asi->Life = asi->Attribute[j].CurrentValue;
 					if (asi->Life < 0 || asi->Life > 100) { asi->Life = -1; }
 				}
+				else if (asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO) {
+					// Endurance Limit Met (Indicates the number of NAND wear)
+				}
 				break;
 			case 0xE7:
 				if (asi->DiskVendorId == SSD_VENDOR_SANDFORCE || asi->DiskVendorId == SSD_VENDOR_CORSAIR || asi->DiskVendorId == SSD_VENDOR_KINGSTON || asi->DiskVendorId == SSD_VENDOR_SKHYNIX || asi->DiskVendorId == SSD_VENDOR_REALTEK
 				||  asi->DiskVendorId == SSD_VENDOR_SANDISK || asi->DiskVendorId == SSD_VENDOR_SSSTC || asi->DiskVendorId == SSD_VENDOR_APACER || asi->DiskVendorId == SSD_VENDOR_JMICRON || asi->DiskVendorId == SSD_VENDOR_PHISON || asi->DiskVendorId == SSD_VENDOR_SEAGATE
-				||  asi->DiskVendorId == SSD_VENDOR_MAXIOTEK || asi->DiskVendorId == SSD_VENDOR_YMTC || asi->DiskVendorId == SSD_VENDOR_SCY || asi->DiskVendorId == SSD_VENDOR_RECADATA)
+				||  asi->DiskVendorId == SSD_VENDOR_MAXIOTEK || asi->DiskVendorId == SSD_VENDOR_YMTC || asi->DiskVendorId == SSD_VENDOR_SCY || asi->DiskVendorId == SSD_VENDOR_RECADATA || asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO)
 				{
 					if (asi->FlagLifeNoReport)
 					{
@@ -11224,6 +11247,9 @@ BOOL CAtaSmart::FillSmartData(ATA_SMART_INFO* asi)
 				if(asi->DiskVendorId == SSD_VENDOR_OCZ_VECTOR)
 				{
 					asi->HostWrites  = *(INT*)&asi->Attribute[j].RawValue[0];//(INT)B8toB32(asi->Attribute[j].RawValue[0], asi->Attribute[j].RawValue[1], asi->Attribute[j].RawValue[2], asi->Attribute[j].RawValue[3]);
+				}
+				else if (asi->DiskVendorId == SSD_VENDOR_SEAGATE_NYTRO) {
+					// Ultra DMA CRC Error Count
 				}
 				break;
 			case 0xF5:
